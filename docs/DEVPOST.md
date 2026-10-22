@@ -92,5 +92,5 @@ Only add entries you actually experienced. Template per entry:
 - **Suggestion:**
 
 ## Links
-- **GitHub repo:** **[BABACAR — https://github.com/<you>/suufscan-mcp]**
+- **GitHub repo:** https://github.com/abdulhakiiim/suufscan-mcp
 - **Demo video (YouTube, public, English, < 3 min):** **[BABACAR]**
