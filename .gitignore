@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+.DS_Store
+docs/PROMPT_CLAUDE_CODE.md
+docs/video/
+video/
+.Rhistory
