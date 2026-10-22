@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="logo.svg">
+<title>SuufScan for Alexa+ — simulator</title>
+<style>
+  :root {
+    --bg: #FAFAF8; --panel: #FFFFFF; --line: #FDE68A; --text: #78350F; --muted: #57534E;
+    --accent: #D97706; --accent-2: #78350F; --user: #FEF3C7; --ok: #047857;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .tag { font-size: 12px; color: #FFFBEB; background: var(--accent-2); padding: 2px 8px; border-radius: 99px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; padding: 16px 20px; max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 0; }
+  .device { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0 14px; }
+  .ring { width: 120px; height: 120px; border-radius: 50%; border: 10px solid #FEF3C7; display: grid; place-items: center; transition: .2s; cursor: pointer; background: none; }
+  .ring span { width: 70px; height: 70px; border-radius: 50%; background: #FFFBEB; display: grid; place-items: center; font-size: 26px; }
+  .ring.listening { border-color: var(--accent); box-shadow: 0 0 30px var(--accent); }
+  .ring.thinking { border-color: var(--accent-2); animation: pulse 1s infinite; }
+  .ring.speaking { border-color: var(--accent); animation: pulse .8s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 34px var(--accent); } }
+  .status { color: var(--muted); font-size: 13px; min-height: 20px; }
+  .chat { display: flex; flex-direction: column; gap: 10px; max-height: 46vh; overflow: auto; padding-right: 4px; }
+  .msg { padding: 10px 12px; border-radius: 12px; max-width: 92%; }
+  .msg.user { background: var(--user); align-self: flex-end; }
+  .msg.alexa { background: #FFFBEB; border: 1px solid #FDE68A; align-self: flex-start; }
+  .msg .who { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .msg .tool { word-break: break-all; font-size: 12px; color: var(--accent); font-family: ui-monospace, Menlo, monospace; }
+  form { display: flex; gap: 8px; margin-top: 12px; }
+  input[type=text] { flex: 1; min-width: 0; background: #FFFFFF; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 15px; }
+  button.send { background: var(--accent); color: #FFFFFF; border: 0; border-radius: 999px; padding: 0 16px; font-weight: 600; cursor: pointer; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .chips button:hover { color: var(--text); border-color: var(--accent); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; display: flex; justify-content: space-between; }
+  .log { font: 12px/1.45 ui-monospace, Menlo, monospace; max-height: 70vh; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+  .log .entry { border-left: 3px solid var(--line); padding: 4px 8px; white-space: pre-wrap; word-break: break-word; }
+  .log .req { border-color: var(--accent-2); }
+  .log .res { border-color: var(--ok); }
+  .log .label { color: var(--muted); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 style="display:flex;align-items:center;gap:10px"><img src="logo.svg" alt="SuufScan" width="32" height="32">SuufScan <span style="color:var(--accent)">for Alexa+</span></h1>
+  <span class="tag">Simulated Alexa+ experience</span>
+  <span class="sub">Voice front-end simulated in the browser · the SuufScan MCP server it calls is real (Streamable HTTP, MCP 2025-11-25)</span>
+</header>
+<main>
+  <section class="panel">
+    <div class="device">
+      <button class="ring" id="ring" title="Tap and speak" aria-label="Tap and speak"><span>🎙</span></button>
+      <div class="status" id="status">Tap the ring and ask a question, or type below.</div>
+    </div>
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <form id="form">
+      <input type="text" id="q" placeholder="e.g. I want to buy land in Mbour for my mother. What should I ask for?" autocomplete="off">
+      <button class="send" type="submit">Ask</button>
+    </form>
+    <div class="chips" id="chips">
+      <button>I live in New York and want to buy land in Mbour for my mother. The seller has a délibération. What should I do before I pay?</button>
+      <button>Where should my cousin go to ask about it?</button>
+      <button>What are the warning signs of a land scam?</button>
+      <button>What is an état des droits réels?</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2><span>MCP traffic</span><span id="proto"></span></h2>
+    <div class="log" id="log"></div>
+    <p class="note">General information to help a buyer protect themselves before purchase. Not legal advice.</p>
+  </section>
+</main>
+<script>
+// ---------- Minimal MCP client over Streamable HTTP (JSON-RPC 2.0) ----------
+const MCP_URL = "/mcp";
+let rpcId = 0, protocolVersion = null, initialized = false;
+
+function logEntry(kind, label, obj) {
+  const log = document.getElementById("log");
+  const div = document.createElement("div");
+  div.className = "entry " + kind;
+  let text = JSON.stringify(obj, null, 2);
+  if (text.length > 1600) text = text.slice(0, 1600) + "\n…";
+  div.innerHTML = `<span class="label">${label}</span>\n`;
+  div.appendChild(document.createTextNode(text));
+  log.prepend(div);
+}
+
+async function rpc(method, params, { notify = false } = {}) {
+  const body = { jsonrpc: "2.0", method, ...(params ? { params } : {}) };
+  if (!notify) body.id = ++rpcId;
+  const headers = { "content-type": "application/json", accept: "application/json, text/event-stream" };
+  if (protocolVersion) headers["mcp-protocol-version"] = protocolVersion;
+  logEntry("req", "→ POST /mcp  " + method, body);
+  const res = await fetch(MCP_URL, { method: "POST", headers, body: JSON.stringify(body) });
+  if (notify) return null;
+  const type = res.headers.get("content-type") || "";
+  let msg;
+  if (type.includes("text/event-stream")) {
+    const raw = await res.text();
+    const line = raw.split("\n").find((l) => l.startsWith("data:"));
+    msg = JSON.parse(line.slice(5));
+  } else {
+    msg = await res.json();
+  }
+  logEntry("res", "← " + method, msg);
+  if (msg.error) throw new Error(msg.error.message);
+  return msg.result;
+}
+
+async function ensureInit() {
+  if (initialized) return;
+  const r = await rpc("initialize", {
+    protocolVersion: "2025-11-25",
+    capabilities: {},
+    clientInfo: { name: "alexa-plus-simulator", version: "0.1.0" },
+  });
+  protocolVersion = r.protocolVersion;
+  document.getElementById("proto").textContent = "protocol " + protocolVersion;
+  await rpc("notifications/initialized", null, { notify: true });
+  await rpc("tools/list", {});
+  initialized = true;
+}
+
+async function callTool(name, args) {
+  await ensureInit();
+  const r = await rpc("tools/call", { name, arguments: args });
+  return r.structuredContent || JSON.parse(r.content[0].text);
+}
+
+// ---------- Simulated Alexa+ intent routing (deterministic, no LLM) ----------
+const COMMUNES = ["Dakar","Pikine","Guédiawaye","Rufisque","Bargny","Diamniadio","Sébikotane","Bambylor","Thiès","Pout",
+  "Popenguine","Nguékhokh","Somone","Ngaparou","Saly","Malicounda","Mbour","Joal","Saint-Louis","Gandiol","Richard-Toll","Dagana"];
+const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/saint louis/g, "saint-louis");
+const ctx = { commune: null, land_status: null };
+
+function detect(text) {
+  const t = norm(text);
+  const commune = [...COMMUNES].sort((a, b) => b.length - a.length).find((c) => t.includes(norm(c))) || null;
+  let land_status = null;
+  if (/titre foncier|land title|\btitle\b/.test(t)) land_status = "titre_foncier";
+  else if (/\bbail\b|\blease\b/.test(t)) land_status = "bail";
+  else if (/deliberation|allocation/.test(t)) land_status = "deliberation";
+  const docs = [
+    [/nicad/, "nicad"], [/droits reels/, "etat_des_droits_reels"], [/certificat|urbanism|zoning/, "certificat_urbanisme"],
+    [/notar/, "acte_notarie"], [/lotissement|subdivision/, "lotissement"], [/procuration|power of attorney/, "procuration"],
+    [/titre foncier|land title/, "titre_foncier"], [/\bbail\b|\blease\b/, "bail"], [/deliberation/, "deliberation"],
+  ];
+  const doc = (docs.find(([re]) => re.test(t)) || [])[1] || null;
+  let intent = "steps";
+  if (/^(what is|what's|whats|explain|what does .* mean)/.test(t) && doc) intent = "explain";
+  else if (/scam|fraud|warning|watch out|red flag|careful|arnaque/.test(t)) intent = "warnings";
+  else if (/where|which office|who should|who do|go to|nearest|closest/.test(t)) intent = "offices";
+  return { intent, commune, land_status, doc };
+}
+
+async function answer(text) {
+  const d = detect(text);
+  if (d.commune) ctx.commune = d.commune;
+  if (d.land_status) ctx.land_status = d.land_status;
+  let tool, args;
+  if (d.intent === "explain") { tool = "explain_land_document"; args = { document: d.doc }; }
+  else if (d.intent === "warnings") { tool = "land_warning_signs"; args = {}; }
+  else if (d.intent === "offices") { tool = "find_land_offices"; args = ctx.commune ? { commune: ctx.commune, limit: 3 } : { limit: 3 }; }
+  else { tool = "buyer_protection_steps"; args = { land_status: ctx.land_status || "unknown", ...(ctx.commune ? { commune: ctx.commune } : {}) }; }
+  const out = await callTool(tool, args);
+  return { tool, args, speech: out.speech };
+}
+
+// ---------- UI, speech in / speech out ----------
+const ring = document.getElementById("ring"), statusEl = document.getElementById("status"), chat = document.getElementById("chat");
+function setState(s, msg) { ring.className = "ring " + (s || ""); statusEl.textContent = msg || ""; }
+function addMsg(who, text, tool) {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.innerHTML = `<div class="who">${who === "user" ? "You" : "Alexa+ · SuufScan"}</div>` +
+    (tool ? `<div class="tool">MCP tool: ${tool}</div>` : "");
+  const p = document.createElement("div"); p.textContent = text; div.appendChild(p);
+  chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
+}
+function speak(text) {
+  if (!("speechSynthesis" in window)) return setState("", "");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/"/g, ""));
+  u.lang = "en-US"; u.rate = 1.0;
+  u.onstart = () => setState("speaking", "Speaking…");
+  u.onend = () => setState("", "Tap the ring to ask a follow-up.");
+  speechSynthesis.speak(u);
+  // If the browser has no voice available, do not stay stuck in the "thinking" state.
+  setTimeout(() => { if (!speechSynthesis.speaking) setState("", "Tap the ring to ask a follow-up."); }, 1500);
+}
+async function handle(text) {
+  if (!text.trim()) return;
+  addMsg("user", text);
+  setState("thinking", "Asking SuufScan…");
+  try {
+    const r = await answer(text);
+    addMsg("alexa", r.speech, `${r.tool}(${JSON.stringify(r.args)})`);
+    speak(r.speech);
+  } catch (e) {
+    addMsg("alexa", "Sorry, I could not reach SuufScan right now.");
+    setState("", "Error: " + e.message);
+  }
+}
+document.getElementById("form").addEventListener("submit", (e) => {
+  e.preventDefault(); const q = document.getElementById("q"); handle(q.value); q.value = "";
+});
+document.getElementById("chips").addEventListener("click", (e) => { if (e.target.tagName === "BUTTON") handle(e.target.textContent); });
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+ring.addEventListener("click", () => {
+  if (!SR) { setState("", "Voice input needs Chrome. Type your question below."); return; }
+  speechSynthesis && speechSynthesis.cancel();
+  const rec = new SR(); rec.lang = "en-US"; rec.interimResults = false;
+  rec.onstart = () => setState("listening", "Listening…");
+  rec.onerror = (e) => setState("", "Mic error: " + e.error);
+  rec.onend = () => { if (ring.classList.contains("listening")) setState("", ""); };
+  rec.onresult = (e) => handle(e.results[0][0].transcript);
+  rec.start();
+});
+ensureInit().catch((e) => setState("", "MCP server not reachable: " + e.message));
+</script>
+</body>
+</html>
