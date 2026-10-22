@@ -186,14 +186,37 @@ function addMsg(who, text, tool) {
   const p = document.createElement("div"); p.textContent = text; div.appendChild(p);
   chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
 }
+// Pick the best English voice the browser offers. Override with ?voice=<name> in the URL.
+let chosenVoice = null;
+function pickVoice() {
+  const voices = speechSynthesis.getVoices().filter((v) => /^en[-_]/i.test(v.lang));
+  const wanted = new URLSearchParams(location.search).get("voice");
+  const by = (re) => voices.find((v) => re.test(v.name));
+  chosenVoice =
+    (wanted && voices.find((v) => v.name.toLowerCase().includes(wanted.toLowerCase()))) ||
+    voices.find((v) => /premium|enhanced|neural|natural/i.test(v.name) && /en[-_]US/i.test(v.lang)) ||
+    by(/^Google US English$/) || by(/Samantha/) || by(/Ava|Allison|Zoe|Evan|Nathan/) ||
+    voices.find((v) => /en[-_]US/i.test(v.lang)) || voices[0] || null;
+  return chosenVoice;
+}
+if ("speechSynthesis" in window) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
 function speak(text) {
   if (!("speechSynthesis" in window)) return setState("", "");
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text.replace(/"/g, ""));
-  u.lang = "en-US"; u.rate = 1.0;
-  u.onstart = () => setState("speaking", "Speaking…");
-  u.onend = () => setState("", "Tap the ring to ask a follow-up.");
-  speechSynthesis.speak(u);
+  const voice = chosenVoice || pickVoice();
+  // Short sentences: long utterances get cut off by some browser voices.
+  const parts = text.replace(/"/g, "").split(/(?<=[.;:!?])\s+/).filter(Boolean);
+  parts.forEach((part, i) => {
+    const u = new SpeechSynthesisUtterance(part);
+    u.lang = "en-US"; u.rate = 0.98; u.pitch = 1.0;
+    if (voice) u.voice = voice;
+    if (i === 0) u.onstart = () => setState("speaking", "Speaking…" + (voice ? " (" + voice.name + ")" : ""));
+    if (i === parts.length - 1) u.onend = () => setState("", "Tap the ring to ask a follow-up.");
+    speechSynthesis.speak(u);
+  });
   // If the browser has no voice available, do not stay stuck in the "thinking" state.
   setTimeout(() => { if (!speechSynthesis.speaking) setState("", "Tap the ring to ask a follow-up."); }, 1500);
 }
