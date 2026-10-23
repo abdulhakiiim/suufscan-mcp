@@ -10,6 +10,7 @@ import {
 } from "./content.js";
 import { findCommune, COMMUNES } from "./communes.js";
 import { loadPlaces, nearestPlaces } from "./places.js";
+import { guidanceUrl, askSegnSuuf } from "./segnSuuf.js";
 
 const ATTRIBUTION =
   process.env.SUUFSCAN_PLACES_ATTRIBUTION ||
@@ -151,4 +152,43 @@ export function registerTools(server) {
       return result(`${d.term}: ${d.meaning}`, { document: d });
     }
   );
+
+  if (guidanceUrl()) {
+    server.registerTool(
+      "ask_segn_suuf",
+      {
+        title: "Ask Sëgn Suuf, SuufScan's land-law assistant",
+        description:
+          "Open question about a land situation in Senegal (inheritance, family land, a seller's document, a dispute, a procedure), " +
+          "answered live by Sëgn Suuf, SuufScan's assistant grounded in Senegalese land law texts in force. " +
+          "Use it when the other tools do not cover the question. Sëgn Suuf answers in French: the assistant may translate for the user. " +
+          "Pass the previous turns in history to keep the conversation context.",
+        inputSchema: {
+          question: z.string().min(3).max(1000).describe("The user's question, in their own words"),
+          history: z
+            .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) }))
+            .max(8)
+            .optional()
+            .describe("Previous turns of the conversation, oldest first"),
+        },
+        annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+      },
+      async ({ question, history = [] }) => {
+        try {
+          const a = await askSegnSuuf(question, history);
+          return result(a.text, {
+            answer_language: a.language,
+            source: "Sëgn Suuf (SuufScan), live answer",
+            translation_note: a.language === "fr" ? "Answer is in French. Translate it for the user if needed." : null,
+            next_step: a.suggest_scan ? SCAN_PARCELLE_HINT : null,
+          });
+        } catch (err) {
+          return result(
+            "SuufScan's land-law assistant could not answer right now. Please try again in a moment.",
+            { answer_language: "en", source: "Sëgn Suuf (SuufScan)", error: String(err.message || err) }
+          );
+        }
+      }
+    );
+  }
 }

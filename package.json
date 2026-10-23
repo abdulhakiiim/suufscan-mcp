@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js && node test/segn-suuf.js"
   },
   "keywords": [],
   "author": "",

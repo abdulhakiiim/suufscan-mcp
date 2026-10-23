@@ -68,6 +68,7 @@
     <div class="chips" id="chips">
       <button>I live in New York and want to buy land in Mbour for my mother. The seller has a délibération. What should I do before I pay?</button>
       <button>Where should my cousin go to ask about it?</button>
+      <button>My uncle wants to sell me a plot he inherited with his brothers. Is that a problem?</button>
       <button>What are the warning signs of a land scam?</button>
       <button>What is an état des droits réels?</button>
     </div>
@@ -81,7 +82,7 @@
 <script>
 // ---------- Minimal MCP client over Streamable HTTP (JSON-RPC 2.0) ----------
 const MCP_URL = "/mcp";
-let rpcId = 0, protocolVersion = null, initialized = false;
+let rpcId = 0, protocolVersion = null, initialized = false, hasSegnSuuf = false;
 
 function logEntry(kind, label, obj) {
   const log = document.getElementById("log");
@@ -126,7 +127,9 @@ async function ensureInit() {
   protocolVersion = r.protocolVersion;
   document.getElementById("proto").textContent = "protocol " + protocolVersion;
   await rpc("notifications/initialized", null, { notify: true });
-  await rpc("tools/list", {});
+  const list = await rpc("tools/list", {});
+  hasSegnSuuf = (list.tools || []).some((t) => t.name === "ask_segn_suuf");
+  document.getElementById("proto").textContent = "protocol " + protocolVersion + (hasSegnSuuf ? " · Sëgn Suuf live" : "");
   initialized = true;
 }
 
@@ -141,6 +144,7 @@ const COMMUNES = ["Dakar","Pikine","Guédiawaye","Rufisque","Bargny","Diamniadio
   "Popenguine","Nguékhokh","Somone","Ngaparou","Saly","Malicounda","Mbour","Joal","Saint-Louis","Gandiol","Richard-Toll","Dagana"];
 const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/saint louis/g, "saint-louis");
 const ctx = { commune: null, land_status: null };
+const convo = []; // conversation turns passed to Sëgn Suuf as history
 
 function detect(text) {
   const t = norm(text);
@@ -159,6 +163,9 @@ function detect(text) {
   if (/^(what is|what's|whats|explain|what does .* mean)/.test(t) && doc) intent = "explain";
   else if (/scam|fraud|warning|watch out|red flag|careful|arnaque/.test(t)) intent = "warnings";
   else if (/where|which office|who should|who do|go to|nearest|closest/.test(t)) intent = "offices";
+  else if (hasSegnSuuf && !/what should i (do|ask)|before (i )?(pay|buy)|ask for/.test(t) &&
+    (/inherit|heir|family|brother|sister|uncle|aunt|widow|divorce|dispute|litige|succession|legal|problem|allowed|right to|what happens|what if|can (i|my|he|she|they|we)\b/.test(t) || !land_status))
+    intent = "segn";
   return { intent, commune, land_status, doc };
 }
 
@@ -167,22 +174,24 @@ async function answer(text) {
   if (d.commune) ctx.commune = d.commune;
   if (d.land_status) ctx.land_status = d.land_status;
   let tool, args;
-  if (d.intent === "explain") { tool = "explain_land_document"; args = { document: d.doc }; }
+  if (d.intent === "segn") { tool = "ask_segn_suuf"; args = { question: text, history: convo.slice(-8) }; }
+  else if (d.intent === "explain") { tool = "explain_land_document"; args = { document: d.doc }; }
   else if (d.intent === "warnings") { tool = "land_warning_signs"; args = {}; }
   else if (d.intent === "offices") { tool = "find_land_offices"; args = ctx.commune ? { commune: ctx.commune, limit: 3 } : { limit: 3 }; }
   else { tool = "buyer_protection_steps"; args = { land_status: ctx.land_status || "unknown", ...(ctx.commune ? { commune: ctx.commune } : {}) }; }
   const out = await callTool(tool, args);
-  return { tool, args, speech: out.speech };
+  return { tool, args, speech: out.speech, lang: out.answer_language || "en" };
 }
 
 // ---------- UI, speech in / speech out ----------
 const ring = document.getElementById("ring"), statusEl = document.getElementById("status"), chat = document.getElementById("chat");
 function setState(s, msg) { ring.className = "ring " + (s || ""); statusEl.textContent = msg || ""; }
-function addMsg(who, text, tool) {
+function addMsg(who, text, tool, lang) {
   const div = document.createElement("div");
   div.className = "msg " + who;
   div.innerHTML = `<div class="who">${who === "user" ? "You" : "Alexa+ · SuufScan"}</div>` +
-    (tool ? `<div class="tool">MCP tool: ${tool}</div>` : "");
+    (tool ? `<div class="tool">MCP tool: ${tool}</div>` : "") +
+    (lang === "fr" ? `<div class="tool">Live answer from Sëgn Suuf, SuufScan's land-law assistant (in French)</div>` : "");
   const p = document.createElement("div"); p.textContent = text; div.appendChild(p);
   chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
 }
@@ -203,15 +212,23 @@ if ("speechSynthesis" in window) {
   pickVoice();
   speechSynthesis.onvoiceschanged = pickVoice;
 }
-function speak(text) {
+function frenchVoice() {
+  const voices = speechSynthesis.getVoices().filter((v) => /^fr[-_]/i.test(v.lang));
+  const by = (re) => voices.find((v) => re.test(v.name));
+  return voices.find((v) => /premium|enhanced|neural|natural/i.test(v.name)) ||
+    by(/Google fran/i) || by(/Amélie|Amelie|Thomas|Audrey|Aurélie/) ||
+    voices.find((v) => /fr[-_]FR/i.test(v.lang)) || voices[0] || null;
+}
+function speak(text, lang = "en") {
   if (!("speechSynthesis" in window)) return setState("", "");
   speechSynthesis.cancel();
-  const voice = chosenVoice || pickVoice();
+  const fr = lang === "fr";
+  const voice = fr ? frenchVoice() : (chosenVoice || pickVoice());
   // Short sentences: long utterances get cut off by some browser voices.
   const parts = text.replace(/"/g, "").split(/(?<=[.;:!?])\s+/).filter(Boolean);
   parts.forEach((part, i) => {
     const u = new SpeechSynthesisUtterance(part);
-    u.lang = "en-US"; u.rate = 0.98; u.pitch = 1.0;
+    u.lang = fr ? "fr-FR" : "en-US"; u.rate = 0.98; u.pitch = 1.0;
     if (voice) u.voice = voice;
     if (i === 0) u.onstart = () => setState("speaking", "Speaking…" + (voice ? " (" + voice.name + ")" : ""));
     if (i === parts.length - 1) u.onend = () => setState("", "Tap the ring to ask a follow-up.");
@@ -226,8 +243,10 @@ async function handle(text) {
   setState("thinking", "Asking SuufScan…");
   try {
     const r = await answer(text);
-    addMsg("alexa", r.speech, `${r.tool}(${JSON.stringify(r.args)})`);
-    speak(r.speech);
+    const shownArgs = r.tool === "ask_segn_suuf" ? { question: r.args.question, history: `${r.args.history.length} turns` } : r.args;
+    addMsg("alexa", r.speech, `${r.tool}(${JSON.stringify(shownArgs)})`, r.lang);
+    convo.push({ role: "user", text }, { role: "assistant", text: r.speech });
+    speak(r.speech, r.lang);
   } catch (e) {
     addMsg("alexa", "Sorry, I could not reach SuufScan right now.");
     setState("", "Error: " + e.message);
