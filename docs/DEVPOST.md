@@ -31,11 +31,12 @@ It returns, by voice:
 - **The nearest land offices** to the plot (tax and Domains centre with its cadastre desk, town hall, prefecture, urban planning) from SuufScan's office directory.
 - **The common warning signs** of land fraud in Senegal.
 - **Plain-language explanations** of the documents the buyer will hear about (NICAD, état des droits réels, Certificat d'Urbanisme…).
+- **Open questions answered live by Sëgn Suuf**, SuufScan's land-law assistant, grounded in the Senegalese land texts in force ("My uncle wants to sell me a plot he inherited with his brothers. Is that a problem?"). Sëgn Suuf answers in French; Alexa+ can translate.
 
 It never says a plot is "safe" and never gives a price. It tells the buyer what to ask, and who to ask.
 
 ### How we built it
-- A **self-hosted MCP server** in Node.js with the official MCP TypeScript SDK, exposing 4 read-only tools over **Streamable HTTP**, negotiating protocol **2025-11-25**. It is stateless (one server instance per request), so it can sit behind any HTTPS load balancer.
+- A **self-hosted MCP server** in Node.js with the official MCP TypeScript SDK, exposing 5 read-only tools over **Streamable HTTP**, negotiating protocol **2025-11-25**. It is stateless (one server instance per request), so it can sit behind any HTTPS load balancer.
 - Every tool returns structured data **plus a short `speech` field written for voice**, so an assistant can read the answer aloud without rewriting it.
 - The office directory is loaded from SuufScan's Explorer (configurable URL), ranked by distance from the commune or a map pin.
 - A **simulated Alexa+ experience** in the browser: Chrome speech recognition in, deterministic intent routing, real MCP JSON-RPC calls (`initialize` → `tools/list` → `tools/call`) to the server, speech synthesis out. A side panel shows the live MCP traffic.
@@ -62,7 +63,7 @@ It never says a plot is "safe" and never gives a price. It tells the buyer what 
 Node.js · Express · MCP TypeScript SDK (`@modelcontextprotocol/sdk`) · Model Context Protocol 2025-11-25 · Streamable HTTP · Zod · Web Speech API · OpenStreetMap data (ODbL)
 
 ## Did the project exist before the hackathon?
-SuufScan (the web platform: an AI land-information chat, a land-office directory and a land risk report) existed before the hackathon. **Everything in this repository was built during the submission window**: the MCP server, its 4 tools, the voice-oriented answers, the office-ranking logic, the simulated Alexa+ experience and the tests. No code from the SuufScan web platform is reused here.
+SuufScan (the web platform: an AI land-information chat, a land-office directory and a land risk report) existed before the hackathon. **Everything in this repository was built during the submission window**: the MCP server, its 5 tools (including the bridge to Sëgn Suuf), the voice-oriented answers, the office-ranking logic, the simulated Alexa+ experience and the tests. No code from the SuufScan web platform is reused here.
 
 **[BABACAR — confirm this is true: the repo is new and was built in October 2026.]**
 
@@ -71,7 +72,7 @@ SuufScan (the web platform: an AI land-information chat, a land-office directory
 **[BABACAR — rewrite with your real experience. Below is a draft based only on what was used to build this repo.]**
 
 - **Tools used:** Model Context Protocol specification 2025-11-25, MCP TypeScript SDK (server `McpServer` + `StreamableHTTPServerTransport`, client `StreamableHTTPClientTransport`), Alexa+ MCP integration documentation.
-- **What we used them for:** exposing SuufScan's buyer-protection content and land-office directory as MCP tools for a voice assistant.
+- **What we used them for:** exposing SuufScan's buyer-protection content, land-office directory and land-law assistant (Sëgn Suuf) as MCP tools for a voice assistant.
 - **What worked well:** the SDK negotiated protocol 2025-11-25 out of the box; stateless Streamable HTTP with JSON responses made the server simple to host and to call from a plain browser `fetch`; tool annotations (`readOnlyHint`) and `structuredContent` fit voice use well.
 - **What needs work:** **[BABACAR — e.g. how hard it was to get access to the Alexa+ Preview to test on a real device, if you tried.]**
 - **Onboarding:** **[BABACAR]**

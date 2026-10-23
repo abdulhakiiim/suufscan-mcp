@@ -15,7 +15,7 @@ The answer is a set of concrete steps, the documents to ask for, and the offices
 | Path | What it is |
 |---|---|
 | `src/server.js` | Express app. `POST /mcp` = MCP endpoint (stateless Streamable HTTP, JSON responses). Also serves the simulator at `/` and `/health`. |
-| `src/tools.js` | The 4 MCP tools (below). Every result has a short `speech` field written for voice, plus structured data. |
+| `src/tools.js` | The MCP tools (below): 4 always on, plus `ask_segn_suuf` when enabled. Every result has a short `speech` field written for voice, plus structured data. |
 | `src/content.js` | Buyer-protection steps per land status, warning signs, glossary of Senegalese land documents. |
 | `src/places.js` | Loads the land-office directory (SuufScan Explorer) from a URL or a local file, ranks offices by distance. |
 | `src/communes.js` | Approximate town-centre coordinates for communes of the Dakar–Thiès–Mbour corridor and the Saint-Louis region. |
@@ -30,8 +30,11 @@ The answer is a set of concrete steps, the documents to ask for, and the offices
 | `find_land_offices(commune? \| lat,lng, office_type?, limit?)` | "Where should I go?" — nearest tax and Domains centre (with its cadastre desk), town hall, prefecture, urban planning service |
 | `land_warning_signs()` | "What are the scams to watch out for?" |
 | `explain_land_document(document)` | "What is a NICAD / an état des droits réels / a délibération?" |
+| `ask_segn_suuf(question, history?)` — *opt-in* | Any other land question (inheritance, family land, a specific situation): answered **live by Sëgn Suuf**, SuufScan's land-law assistant grounded in Senegalese land texts in force. Answers in French; the assistant can translate. |
 
 All tools are read-only (`readOnlyHint: true`).
+
+`ask_segn_suuf` is registered only when `SUUFSCAN_GUIDANCE_URL` is set: each call is a real model call on SuufScan's side, so a plain local run never triggers it. Demo traffic is tagged with the session id `mcp-hackathon-demo` (`SUUFSCAN_GUIDANCE_SESSION`).
 
 ## Run it
 

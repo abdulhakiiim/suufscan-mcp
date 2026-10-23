@@ -8,7 +8,7 @@ Setup: Chrome, `npm start` running, `http://localhost:3333/` full screen, mic on
 Timeline, 1920×1080, SuufScan brand (cream, amber, deep brown, logo):
 1. `video/suufscan-1-intro.mp4` — 0:00–0:25
 2. `video/suufscan-2-how-it-works.mp4` — 0:25–0:40
-3. Screen recording of the simulator with real data — 0:40–2:15 (questions 1 to 4, ≈ 1:35)
+3. Screen recording of the simulator with real data and Sëgn Suuf live — 0:40–2:15 (≈ 1:35). Start the server with both `SUUFSCAN_PLACES_URL` and `SUUFSCAN_GUIDANCE_URL`. Add English subtitles in Canva on Sëgn Suuf's French answer.
 4. `video/suufscan-4-outro.mp4` — 2:15–2:30
 
 Voice-over, clip 1 (intro, 25 s):
@@ -20,11 +20,11 @@ Voice-over, clip 1 (intro, 25 s):
 
 Voice-over, clip 2 (how it works, 15 s):
 - 0:00 "You ask by voice, in English, from home."
-- 0:04 "Alexa+ calls the SuufScan MCP server, over Streamable HTTP, on the 2025-11-25 spec. Four read-only tools."
+- 0:04 "Alexa+ calls the SuufScan MCP server, over Streamable HTTP, on the 2025-11-25 spec, and through it SuufScan's own land-law assistant."
 - 0:09 "And SuufScan answers: what to ask, and who to ask. In this demo, the Alexa+ voice front-end is simulated; the MCP server is real."
 
 Voice-over, clip 4 (outro, 15 s):
-- 0:00 "Four read-only MCP tools, one stateless endpoint, answers written for the ear."
+- 0:00 "One stateless MCP endpoint: steps, offices, warnings, and SuufScan's land-law assistant, live."
 - 0:06 "What to ask. Who to ask."
 - 0:10 "SuufScan. Protect yourself before you buy."
 
@@ -49,14 +49,16 @@ Let the answer play fully. Then point at the right panel:
 
 "Alexa+ remembers we're talking about Mbour and calls `find_land_offices`, which ranks offices from SuufScan's directory by distance."
 
-**1:40–2:00 — Question 3**
+**1:40–2:05 — Question 3 (Sëgn Suuf, live)**
+> "My uncle wants to sell me a plot he inherited with his brothers. Is that a problem?"
+
+"For open questions, Alexa+ hands over to Sëgn Suuf, SuufScan's land-law assistant, grounded in Senegalese land law. It answers in French, the language of the land offices; Alexa+ can translate." Subtitle the answer in English in Canva.
+
+**2:05–2:15 — Question 4 (optional if time allows)**
 > "What are the warning signs of a land scam?"
 
-**2:00–2:10 — Question 4 (optional if time allows)**
-> "What is an état des droits réels?"
-
 **2:10–2:35 — Close**
-"Four read-only tools, one stateless Streamable HTTP endpoint, answers written for the ear. It never says a plot is safe and never gives a price: it tells you what to ask, and who to ask. Next step: plug it into the Alexa+ Preview and put it in the hands of the Senegalese diaspora. SuufScan — protect yourself before you buy."
+"One stateless Streamable HTTP endpoint, answers written for the ear. It never says a plot is safe and never gives a price: it tells you what to ask, and who to ask. Next step: plug it into the Alexa+ Preview and put it in the hands of the Senegalese diaspora. SuufScan — protect yourself before you buy."
 
 ---
 
